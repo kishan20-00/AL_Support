@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import joblib
 import numpy as np
+from xgboost import XGBClassifier
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -66,4 +67,4 @@ def predict():
 
 # Run the Flask app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port= '5003', host='0.0.0.0')

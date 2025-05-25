@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebaseConfig'; // Import Firebase auth
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Avatar, Text } from 'react-native-paper';
@@ -9,19 +12,34 @@ import SignupScreen from './screens/SignupScreen';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import PerformanceScreen from './screens/PerformanceScreen';
+import PerformanceDisplay from './screens/PerformanceScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import HelpScreen from './screens/HelpScreen';
 import ContactScreen from './screens/ContactScreen';
 import PredictionScreen from './screens/AcademicScreen';
 import StressScreen from './screens/StressScreen';
 import PlaylistPredictionScreen from './screens/MusicScreen';
+import BackgroundFormScreen from './screens/BackgroundFormScreen';
+import EducationPlanScreen from './screens/StudyPlan'
+import MusicPlaylistScreen from './screens/Playlist';
+import emotion from './screens/AudioClassification';
+import NotificationScreen from './screens/NotificationScreen';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
-// Custom Drawer Content
 const CustomDrawerContent = (props) => {
+  const navigation = useNavigation();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.replace('Auth'); // Redirect to Auth Stack (Login Screen)
+    } catch (error) {
+      console.error("Logout Error:", error.message);
+    }
+  };
+
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.drawerHeader}>
@@ -29,6 +47,12 @@ const CustomDrawerContent = (props) => {
         <Text variant="titleLarge" style={styles.username}>Welcome!</Text>
       </View>
       <DrawerItemList {...props} />
+      {/* Logout Button */}
+      <DrawerItem 
+        label="Logout"
+        icon={({ color, size }) => <Icon name="logout" size={size} color={color} />}
+        onPress={handleLogout}
+      />
     </DrawerContentScrollView>
   );
 };
@@ -51,10 +75,24 @@ const DrawerNavigator = () => (
       }}
     />
     <Drawer.Screen
-      name="Performance"
-      component={PerformanceScreen}
+      name="Analysis"
+      component={PerformanceDisplay}
       options={{
         drawerIcon: ({ color, size }) => <Icon name="chart-bar" size={size} color={color} />,
+      }}
+    />
+    <Drawer.Screen
+      name="Study Plan"
+      component={EducationPlanScreen}
+      options={{
+        drawerIcon: ({ color, size }) => <Icon name="book" size={size} color={color} />,
+      }}
+    />
+    <Drawer.Screen
+      name="Playlist"
+      component={MusicPlaylistScreen}
+      options={{
+        drawerIcon: ({ color, size }) => <Icon name="music-note-half" size={size} color={color} />,
       }}
     />
     <Drawer.Screen
@@ -62,6 +100,13 @@ const DrawerNavigator = () => (
       component={SettingsScreen}
       options={{
         drawerIcon: ({ color, size }) => <Icon name="cog-outline" size={size} color={color} />,
+      }}
+    />
+    <Drawer.Screen
+      name="Notification"
+      component={NotificationScreen}
+      options={{
+        drawerIcon: ({ color, size }) => <Icon name="bell-badge" size={size} color={color} />,
       }}
     />
     <Drawer.Screen
@@ -106,9 +151,18 @@ export default function App() {
           options={{ headerShown: true, title: "Stress Level Prediction" }} 
         />
         <Stack.Screen 
+          name="Audio" 
+          component={emotion} 
+          options={{ headerShown: true, title: "Emotion Prediction" }} 
+        />
+        <Stack.Screen 
           name="Music" 
           component={PlaylistPredictionScreen} 
           options={{ headerShown: true, title: "Music Playlist Prediction" }} 
+        />
+        <Stack.Screen 
+          name="BackgroundForm" 
+          component={BackgroundFormScreen} 
         />
       </Stack.Navigator>
     </NavigationContainer>

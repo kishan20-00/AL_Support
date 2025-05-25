@@ -1,70 +1,66 @@
 from flask import Flask, request, jsonify
 import joblib
 import numpy as np
-from xgboost import XGBClassifier
+import tensorflow as tf
 
-# Initialize the Flask app
 app = Flask(__name__)
 
-# Paths to load the saved files
-best_model_path = "best_model.pkl"
-encoders_path = "label_encoders.pkl"
-scaler_path = "scaler.pkl"
+# Load model and encoders
+def load_model_and_encoders():
+    model = tf.keras.models.load_model('playlist_model.h5')
+    scaler = joblib.load('scaler.pkl')
+    label_encoders = joblib.load('label_encoders.pkl')
+    return model, scaler, label_encoders
 
-# Load the saved objects
-best_model = joblib.load(best_model_path)
-label_encoders = joblib.load(encoders_path)
-scaler = joblib.load(scaler_path)
+# Load model and encoders
+model, scaler, label_encoders = load_model_and_encoders()
 
-# Preprocessing function
-def preprocess_sample(sample, encoders, scaler):
-    # Encode categorical columns
-    encoded = []
-    for col, encoder in encoders.items():
-        if col in sample:
-            encoded.append(encoder.transform([sample[col]])[0])
+@app.route('/predict', methods=['POST'])
+def predict_playlist():
+    try:
+        data = request.get_json()
+        
+        # Validate input
+        required_fields = ['emotion', 'weather', 'time']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        emotion = data['emotion']
+        weather = data['weather']
+        time = data['time']
+        
+        # Validate input values against label encoders
+        if emotion not in label_encoders['Emotion'].classes_:
+            return jsonify({'error': f'Invalid emotion: {emotion}'}), 400
+        if weather not in label_encoders['Weather'].classes_:
+            return jsonify({'error': f'Invalid weather: {weather}'}), 400
+        if time not in label_encoders['Time'].classes_:
+            return jsonify({'error': f'Invalid time: {time}'}), 400
+        
+        # Encode the input data
+        encoded_input = [
+            label_encoders['Emotion'].transform([emotion])[0],
+            label_encoders['Weather'].transform([weather])[0],
+            label_encoders['Time'].transform([time])[0]
+        ]
+        
+        # Scale input data
+        scaled_input = scaler.transform([encoded_input])
+        
+        # Predict playlist number
+        predictions = model.predict(scaled_input)
+        predicted_class = np.argmax(predictions, axis=1)[0]
+        
+        # Ensure predicted_class is a valid integer
+        if not isinstance(predicted_class, (int, np.integer)):
+            return jsonify({'error': 'Invalid prediction output'}), 500
+        
+        return jsonify({"Recommended Playlist": int(predicted_class)})
     
-    # Convert to NumPy array and reshape
-    encoded = np.array(encoded).reshape(1, -1)
-    
-    # Scale the features
-    scaled = scaler.transform(encoded)
-    return scaled
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error during prediction: {str(e)}")
+        return jsonify({"error": "An error occurred during prediction"}), 500
 
-# Route to predict the playlist
-@app.route('/predict', methods=['GET'])
-def predict():
-    # Get parameters from the URL
-    emotion = request.args.get('Emotion')
-    climate = request.args.get('Climate')
-    time_of_day = request.args.get('Time')
-    
-    # Validate input
-    if not emotion or not climate or not time_of_day:
-        return jsonify({"error": "Missing required parameters: Emotion, Climate, Time"}), 400
-    
-    # Check if the values are valid
-    if emotion not in label_encoders['Emotion'].classes_:
-        return jsonify({"error": f"Invalid Emotion. Must be one of {list(label_encoders['Emotion'].classes_)}"}), 400
-    if climate not in label_encoders['Climate'].classes_:
-        return jsonify({"error": f"Invalid Climate. Must be one of {list(label_encoders['Climate'].classes_)}"}), 400
-    if time_of_day not in label_encoders['Time'].classes_:
-        return jsonify({"error": f"Invalid Time. Must be one of {list(label_encoders['Time'].classes_)}"}), 400
-    
-    # Create sample input
-    sample_input = {
-        'Emotion': emotion,
-        'Climate': climate,
-        'Time': time_of_day
-    }
-    
-    # Preprocess and predict
-    preprocessed_input = preprocess_sample(sample_input, label_encoders, scaler)
-    predicted_class = best_model.predict(preprocessed_input)
-    
-    # Return the prediction
-    return jsonify({"Predicted Playlist": f"Playlist {predicted_class[0]}"})
-
-# Run the Flask app
 if __name__ == '__main__':
-    app.run(debug=True, port= '5003', host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=5003)

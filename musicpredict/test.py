@@ -1,19 +1,20 @@
 import requests
 
-# Base URL of the Flask app
-base_url = "http://127.0.0.1:5000/predict"
+# Define the API endpoint
+url = "http://127.0.0.1:5000/predict"
 
-# Sample test cases
-test_cases = [
-    {"Emotion": "Aggressive", "Climate": "Cloudy", "Time": "Morning"}
-]
+# Define the input data
+data = {
+    "emotion": "Neutral",
+    "weather": "Sunny",
+    "time": "Morning"
+}
 
-# Iterate through test cases and make requests
-for i, case in enumerate(test_cases, start=1):
-    print(f"Test Case {i}: {case}")
-    response = requests.get(base_url, params=case)
-    if response.status_code == 200:
-        print("Response:", response.json())
-    else:
-        print("Error:", response.json())
-    print("-" * 50)
+# Send a POST request
+response = requests.post(url, json=data)
+
+# Print the response
+if response.status_code == 200:
+    print("Response from API:", response.json())
+else:
+    print("Error:", response.status_code, response.text)

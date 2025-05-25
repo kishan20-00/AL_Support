@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image, KeyboardAvoidingView } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebaseConfig';
@@ -16,23 +16,34 @@ const SignupScreen = ({ navigation }) => {
   const handleSignup = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
+      const user = userCredential.user;
+
+      await setDoc(doc(db, 'users', user.uid), {
         fullName,
         phoneNumber,
         age,
         email,
+        backgroundCompleted: false, // Track whether form is completed
       });
+
       alert('User registered successfully!');
-      navigation.navigate('Login');
+      navigation.replace('BackgroundForm'); // Redirect only after signup
     } catch (error) {
       alert(error.message);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
+      <Image
+        source={require('../assets/stress2.png')} // Replace with your actual image path
+        style={styles.illustration}
+      />
       <Text variant="headlineLarge" style={styles.title}>
         Signup
+      </Text>
+      <Text variant="bodyMedium" style={styles.subtitle}>
+        Create an account to get started
       </Text>
 
       <TextInput
@@ -76,18 +87,33 @@ const SignupScreen = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry={secureText}
         mode="outlined"
-        right={<TextInput.Icon icon={secureText ? "eye-off" : "eye"} onPress={() => setSecureText(!secureText)} />}
+        right={
+          <TextInput.Icon
+            icon={secureText ? 'eye-off' : 'eye'}
+            onPress={() => setSecureText(!secureText)}
+          />
+        }
         style={styles.input}
       />
 
-      <Button mode="contained" onPress={handleSignup} style={styles.button}>
+      <Button
+        mode="contained"
+        onPress={handleSignup}
+        style={styles.button}
+        contentStyle={styles.buttonContent}
+      >
         Signup
       </Button>
 
-      <Button mode="text" onPress={() => navigation.navigate('Login')} style={styles.textButton}>
+      <Button
+        mode="text"
+        onPress={() => navigation.navigate('Login')}
+        labelStyle={styles.loginText}
+        style={styles.loginButton}
+      >
         Already have an account? Login
       </Button>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -97,23 +123,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
+  },
+  illustration: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+    marginBottom: 20,
   },
   title: {
-    marginBottom: 20,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 30,
   },
   input: {
-    width: '90%',
+    width: '100%',
     marginBottom: 15,
+    backgroundColor: '#ffffff',
   },
   button: {
-    width: '90%',
-    marginTop: 10,
+    width: '100%',
     backgroundColor: '#6200ea',
+    marginVertical: 10,
   },
-  textButton: {
-    marginTop: 10,
+  buttonContent: {
+    paddingVertical: 10,
+  },
+  loginButton: {
+    marginTop: 20,
+  },
+  loginText: {
+    color: '#6200ea',
+    fontSize: 14,
   },
 });
 

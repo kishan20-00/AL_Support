@@ -1,0 +1,8 @@
+flask
+tensorflow
+opencv-python
+librosa
+joblib
+numpy
+scikit-learn
+python-dotenv
